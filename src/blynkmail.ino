@@ -27,39 +27,41 @@
     frequency (i.e. 1 second)
  *************************************************************/
 
-/* Comment this out to disable prints and save space */
-#define BLYNK_PRINT Serial
-
-
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include "settings.h"
 
-
-
 // Use Virtual pin 5 for uptime display
-#define PIN_UPTIME V5
+#define PIN_MAIL V5
+#define recvPin 13
+#define sendPin 12
 
-// This function tells Arduino what to do if there is a Widget
-// which is requesting data for Virtual Pin (5)
-BLYNK_READ(PIN_UPTIME)
-{
-  // This command writes Arduino's uptime in seconds to Virtual Pin (5)
-  Blynk.virtualWrite(PIN_UPTIME, millis() / 1000);
-}
+/* Comment this out to disable prints and save space */
+// #define BLYNK_PRINT Serial
 
 void setup()
 {
   // Debug console
   Serial.begin(9600);
 
-  Blynk.begin(auth, ssid, pass);
-  // You can also specify server:
-  //Blynk.begin(auth, ssid, pass, "blynk-cloud.com", 8442);
-  //Blynk.begin(auth, ssid, pass, IPAddress(192,168,1,100), 8442);
+  Blynk.begin(auth, ssid, passwd);
+  Blynk.notify("You received mail!");
 }
 
 void loop()
 {
+
+  //If arduino sent the door closed is 1
+  if(recvPin){
+    Blynk.virtualWrite(V5, "CLOSED");
+
+    //received door closed from Arduino.
+    //Telling arduino status has been updated.
+    digitalWrite(sendPin, HIGH);
+  }else{
+    Blynk.virtualWrite(V5, "OPEN");
+  }
+
   Blynk.run();
+
 }
