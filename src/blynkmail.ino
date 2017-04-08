@@ -27,41 +27,79 @@
     frequency (i.e. 1 second)
  *************************************************************/
 
+
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include "settings.h"
 
-// Use Virtual pin 5 for uptime display
-#define PIN_MAIL V5
-#define recvPin 13
-#define sendPin 12
+#define BLYNK_PRINT Serial
+#define in_pin             14
+#define openMail_pin       12
+#define rstPin             16
+#define sensor_wait      1000
+#define buzzerPin           4
+#define temp_pin            7
 
-/* Comment this out to disable prints and save space */
-// #define BLYNK_PRINT Serial
+bool door_open;
+volatile long last_msg;
+volatile bool mail_empty = true;
+float tempF = 0;
 
-void setup()
-{
-  // Debug console
-  Serial.begin(9600);
+WidgetTerminal terminal(V1);
 
-  Blynk.begin(auth, ssid, passwd);
-  Blynk.notify("You received mail!");
+IPAddress esp_ip (192,168,10,1);
+IPAddress dns_ip(8,8,8,8);
+IPAddress gateway_ip(192,168,1,1);
+IPAddress subnet_mask(255,255,255,0);
+byte esp_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+
+BLYNK_WRITE(V1){
+
+}
+
+void goToSleep(){
+    yield();
+    Serial.println("Goodbye.");
+    ESP.deepSleep(0);
+    yield();
+}
+
+void setup(){
+
+    //disable ability to reset while on.
+    pinMode(rstPin, OUTPUT);
+    digitalWrite(rstPin, LOW);
+
+    // Debug console
+    Serial.begin(9600);
+
+    Blynk.config(auth, "blynk-cloud.com", 8442);
+    while(Blynk.connect(1000) == false){
+        Serial.println(".");
+    }
+
+    Serial.println("Alert Sending...");
+    Blynk.notify("Mailbox Alert");
+
+    int reading = analogRead(0);
+    float voltage = reading * 3.3 / 1024;
+    float tempC = (voltage - 0.5) * 100;
+    tempF = (tempC * 9 / 5) + 32;
+
+    Serial.print("TempF: ");
+    Serial.println(tempF);
+    
+    //input of door switch
+    pinMode(in_pin, INPUT_PULLUP);
+    pinMode(openMail_pin, INPUT_PULLUP);
+
+    terminal.print(F("Blynk v" BLYNK_VERSION ": Mail door opened. \n"));
+    terminal.flush();
 }
 
 void loop()
 {
-
-  //If arduino sent the door closed is 1
-  if(recvPin){
-    Blynk.virtualWrite(V5, "CLOSED");
-
-    //received door closed from Arduino.
-    //Telling arduino status has been updated.
-    digitalWrite(sendPin, HIGH);
-  }else{
-    Blynk.virtualWrite(V5, "OPEN");
-  }
-
-  Blynk.run();
-
+    Blynk.virtualWrite(V5, tempF);
+    Blynk.run();
+    goToSleep();   
 }
