@@ -60,7 +60,7 @@ BLYNK_WRITE(V1){
 void goToSleep(){
     yield();
     Serial.println("Goodbye.");
-    ESP.deepSleep(0);
+    ESP.deepSleep(0);// must be zero for tilt sensor to work
     yield();
 }
 
@@ -84,7 +84,7 @@ void setup(){
     int reading = analogRead(0);
     float voltage = reading * 3.3 / 1024;
     float tempC = (voltage - 0.5) * 100;
-    tempF = (tempC * 9 / 5) + 32;
+    tempF = (tempC * 9 / 5) + 161;
 
     Serial.print("TempF: ");
     Serial.println(tempF);
