@@ -73,10 +73,25 @@ void setup(){
     // Debug console
     Serial.begin(115200);
 
-    Blynk.config(auth, "blynk-cloud.com", 8442);
-    while(Blynk.connect(1000) == false){
-        Serial.println(".");
-    }
+    //setup wifi
+    // WiFi.mode(WIFI_STA);
+    // WiFi.config(esp_ip, gateway_ip, subnet_mask);
+    // WiFi.begin(ssid, passwd);
+    
+    // while(WiFi.status() != WL_CONNECTED){
+    //     delay(100);
+    //     Serial.println("*");
+    // }
+    // Serial.println(WiFi.status());
+
+
+    //wait for blynk server connection
+    // Blynk.config(auth, "blynk-cloud.com", 8442);
+    // while(Blynk.connect(1000) == false){
+    //     Serial.println(".");
+    // }
+
+    Blynk.begin(auth, ssid, passwd);
 
     Serial.println("Alert Sending...");
     Blynk.notify("Mailbox Alert");
