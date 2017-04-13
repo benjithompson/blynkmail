@@ -71,7 +71,7 @@ void setup(){
     digitalWrite(rstPin, LOW);
 
     // Debug console
-    Serial.begin(9600);
+    Serial.begin(115200);
 
     Blynk.config(auth, "blynk-cloud.com", 8442);
     while(Blynk.connect(1000) == false){
