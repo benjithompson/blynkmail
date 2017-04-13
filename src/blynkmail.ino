@@ -47,14 +47,14 @@ float tempF = 0;
 
 WidgetTerminal terminal(V1);
 
-IPAddress esp_ip (192,168,10,1);
-IPAddress dns_ip(8,8,8,8);
-IPAddress gateway_ip(192,168,1,1);
-IPAddress subnet_mask(255,255,255,0);
-byte esp_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+// IPAddress esp_ip (192,168,10,1);
+// IPAddress dns_ip(8,8,8,8);
+// IPAddress gateway_ip(192,168,1,1);
+// IPAddress subnet_mask(255,255,255,0);
+// byte esp_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
 BLYNK_WRITE(V1){
-
+    //Terminal response here
 }
 
 void goToSleep(){
