@@ -1,57 +1,25 @@
-/*************************************************************
-  Download latest Blynk library here:
-    https://github.com/blynkkk/blynk-library/releases/latest
+//Blynk Terminal V1
 
-  Blynk is a platform with iOS and Android apps to control
-  Arduino, Raspberry Pi and the likes over the Internet.
-  You can easily build graphic interfaces for all your
-  projects by simply dragging and dropping widgets.
-
-    Downloads, docs, tutorials: http://www.blynk.cc
-    Sketch generator:           http://examples.blynk.cc
-    Blynk community:            http://community.blynk.cc
-    Social networks:            http://www.fb.com/blynkapp
-                                http://twitter.com/blynk_app
-
-  Blynk library is licensed under MIT license
-  This example code is in public domain.
-
- *************************************************************
-
-  This example shows how to send values to the Blynk App,
-  when there is a widget, attached to the Virtual Pin and it
-  is set to some frequency
-
-  Project setup in the app:
-    Value Display widget attached to V5. Set any reading
-    frequency (i.e. 1 second)
- *************************************************************/
-
-
-#include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include "settings.h"
 
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+
 #define BLYNK_PRINT Serial
-#define in_pin             14
-#define openMail_pin       12
-#define rstPin             16
-#define sensor_wait      1000
-#define buzzerPin           4
-#define temp_pin            7
+#define rst_pin             16
+#define temp_pin             7
+#define flash_pin            2
 
 bool door_open;
+bool flash_enabled;
 volatile long last_msg;
 volatile bool mail_empty = true;
 float tempF = 0;
 
 WidgetTerminal terminal(V1);
-
-// IPAddress esp_ip (192,168,10,1);
-// IPAddress dns_ip(8,8,8,8);
-// IPAddress gateway_ip(192,168,1,1);
-// IPAddress subnet_mask(255,255,255,0);
-// byte esp_mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
 BLYNK_WRITE(V1){
     //Terminal response here
@@ -66,55 +34,86 @@ void goToSleep(){
 
 void setup(){
 
-    //disable ability to reset while on.
-    pinMode(rstPin, OUTPUT);
-    digitalWrite(rstPin, LOW);
-
-    // Debug console
+    //Debug console
     Serial.begin(115200);
+    Serial.println("Booting...");
 
-    //setup wifi
-    // WiFi.mode(WIFI_STA);
-    // WiFi.config(esp_ip, gateway_ip, subnet_mask);
-    // WiFi.begin(ssid, passwd);
-    
-    // while(WiFi.status() != WL_CONNECTED){
-    //     delay(100);
-    //     Serial.println("*");
-    // }
-    // Serial.println(WiFi.status());
+    //Read GPIO 0 to see if in flash mode
+    pinMode(flash_pin, INPUT);
+    flash_enabled = digitalRead(flash_pin);
 
+     
+    if(flash_enabled == LOW){
+        Serial.println("OTA enabled.");
 
-    //wait for blynk server connection
-    // Blynk.config(auth, "blynk-cloud.com", 8442);
-    // while(Blynk.connect(1000) == false){
-    //     Serial.println(".");
-    // }
+        //enable ability to reset while on.
+        pinMode(rst_pin, OUTPUT);
+        digitalWrite(rst_pin, HIGH);
 
-    Blynk.begin(auth, ssid, passwd);
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(ssid, passwd);
+        while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+            Serial.println("Connection Failed! Rebooting...");
+            delay(5000);
+            ESP.restart();
+        }
 
-    Serial.println("Alert Sending...");
-    Blynk.notify("Mailbox Alert");
+        //OTA Setup
+        ArduinoOTA.onStart([]() {
+            Serial.println("Start");
+        });
 
-    int reading = analogRead(0);
-    float voltage = reading * 3.3 / 1024;
-    float tempC = (voltage - 0.5) * 100;
-    tempF = (tempC * 9 / 5) + 161;
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\nEnd");
+        });
 
-    Serial.print("TempF: ");
-    Serial.println(tempF);
-    
-    //input of door switch
-    pinMode(in_pin, INPUT_PULLUP);
-    pinMode(openMail_pin, INPUT_PULLUP);
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+            Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        });
 
-    terminal.print(F("Blynk v" BLYNK_VERSION ": Mail door opened. \n"));
-    terminal.flush();
+        ArduinoOTA.onError([](ota_error_t error) {
+            Serial.printf("Error[%u]: ", error);
+            if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+            else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+            else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+            else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+            else if (error == OTA_END_ERROR) Serial.println("End Failed");
+        });
+
+        ArduinoOTA.begin();
+        Serial.println("Ready");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+
+    }else{
+        Serial.println("Blynk Mail enabled.");
+
+        //disable ability to reset while on.
+        pinMode(rst_pin, OUTPUT);
+        digitalWrite(rst_pin, LOW);
+
+        Blynk.begin(auth, ssid, passwd);
+
+        Serial.println("Alert Sending...");
+        Blynk.notify("Mailbox Alert");
+
+        int reading = analogRead(0);
+        float voltage = reading * 3.3 / 1024;
+        float tempC = (voltage - 0.5) * 100;
+        tempF = (tempC * 9 / 5) + 32;
+
+        Serial.print("TempF: ");
+        Serial.println(tempF);
+    }
 }
 
 void loop()
 {
-    Blynk.virtualWrite(V5, tempF);
-    Blynk.run();
-    goToSleep();   
+    if(flash_enabled == LOW){
+        ArduinoOTA.handle();
+    }else{
+        Blynk.virtualWrite(V5, tempF);
+        Blynk.run();
+        goToSleep();   
+    }
 }
