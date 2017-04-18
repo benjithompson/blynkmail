@@ -10,13 +10,13 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
 // #define BLYNK_PRINT Serial
-#define BLYNK_NO_BUILTIN
+// #define BLYNK_NO_BUILTIN
 #define rst_pin             16
 #define temp_pin             7
-#define flash_pin            2
+#define flash_pin            4
 
 bool door_open;
 bool flash_enabled;
@@ -26,8 +26,8 @@ volatile bool mail_empty = true;
 float tempF = 0;
 
 uint8_t wifi_step = 0;
-char* t_ssid = "00000000000000000000000000000000";
-char* t_pw = "00000000000000000000000000000001";
+// char* t_ssid = "00000000000000000000000000000000";
+// char* t_pw = "00000000000000000000000000000001";
 
 int ssid_addr = 0;
 int pw_addr = 50;
@@ -50,26 +50,26 @@ void wifiSettings(){
 BLYNK_WRITE(V1){
 
     if(wifi_step > 0 && flash_enabled){
-        switch(wifi_step){
-            case 1:{
-                String y_ssid = param.asStr();
-                y_ssid.toCharArray(t_ssid, y_ssid.length()+1);
-                terminal.println("Enter wifi password: ");
-                terminal.flush();
-                EEPROM.put(ssid_addr, t_ssid);
-                wifi_step = 2;
-                return;
-            }
-            case 2:{
-                String y_pw = param.asStr();
-                y_pw.toCharArray(t_pw, y_pw.length()+1);
-                terminal.println("Wifi settings saved!");
-                terminal.flush();
-                EEPROM.put(pw_addr, t_pw);
-                wifi_step = 0;
-                return;
-            }
-        }
+        // switch(wifi_step){
+        //     case 1:{
+        //         String y_ssid = param.asStr();
+        //         y_ssid.toCharArray(t_ssid, y_ssid.length()+1);
+        //         terminal.println("Enter wifi password: ");
+        //         terminal.flush();
+        //         EEPROM.put(ssid_addr, t_ssid);
+        //         wifi_step = 2;
+        //         return;
+        //     }
+        //     case 2:{
+        //         String y_pw = param.asStr();
+        //         y_pw.toCharArray(t_pw, y_pw.length()+1);
+        //         terminal.println("Wifi settings saved!");
+        //         terminal.flush();
+        //         EEPROM.put(pw_addr, t_pw);
+        //         wifi_step = 0;
+        //         return;
+        //     }
+        // }
     }else{
         //Terminal response here
         terminal.println("unknown command.");
@@ -81,6 +81,7 @@ BLYNK_WRITE(V2){
     Serial.println("Reset button pressed.");
     terminal.println("Resetting...");
     terminal.flush();
+    flash_enabled = false;
     ESP.reset();
 }
 //Button to start WIFI settings
@@ -141,13 +142,17 @@ void setup(){
     Serial.begin(115200);
     Serial.println("Booting...");
 
-    //Read GPIO 0 to see if in flash mode
-    pinMode(flash_pin, INPUT);
+    //Read GPIO4 to see if in flash mode
+    pinMode(flash_pin, INPUT_PULLUP);
+    //if grounded (pulled down)
     flash_enabled = !digitalRead(flash_pin);
+    Serial.println(digitalRead(flash_pin));
+
+    Blynk.begin(auth, ssid, passwd); //if eeprom doesnt work
 
     if(flash_enabled == true){
         //default wifi
-        Blynk.begin(auth, ssid, passwd);
+        // Blynk.begin(auth, ssid, passwd);
 
         Serial.println("OTA enabled.");
 
@@ -190,15 +195,15 @@ void setup(){
 
     }else{
 
-        EEPROM.get(ssid_addr, t_ssid);
-        EEPROM.get(pw_addr, t_pw);
-        Serial.print("EEPROM ssid: ");
-        Serial.println(t_ssid);
-        Serial.print("EEPROM pw: ");
-        Serial.println(t_pw);
+        // EEPROM.get(ssid_addr, t_ssid);
+        // EEPROM.get(pw_addr, t_pw);
+        // Serial.print("EEPROM ssid: ");
+        // Serial.println(t_ssid);
+        // Serial.print("EEPROM pw: ");
+        // Serial.println(t_pw);
 
 
-        Blynk.begin(auth, t_ssid, t_pw);
+        // Blynk.begin(auth, t_ssid, t_pw);
         if(!Blynk.connected()){
             Serial.println("Wifi failed to connect. Try changing ssid/pw settings.");
             terminal.println("Failed to connect. Change wifi settings in OTA mode.");
@@ -206,11 +211,11 @@ void setup(){
         }
 
         Serial.println("Blynk Mail enabled.");
-        terminal.println("MailBot activated!");
+        terminal.println("MailBot was activated!");
         terminal.flush();
 
         Serial.println("Alert Sending...");
-        Blynk.notify("Mailbox Alert");
+        Blynk.notify("MailBot Alert!");
 
         //disable ability to reset while on.
         pinMode(rst_pin, OUTPUT);
