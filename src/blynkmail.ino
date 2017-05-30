@@ -1,5 +1,6 @@
 //Simple notification script that sends message using Blynk framework.
 //Uses deepSleep to save power and turns on using external interupt GPIO16 to RST
+//Working on Sparkfun Thing ESP8266 board.
 
 #include <BlynkSimpleEsp8266.h>
 // #include <WiFi.h>
