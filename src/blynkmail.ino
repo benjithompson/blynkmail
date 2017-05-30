@@ -42,7 +42,7 @@ void setup(){
 
     // Serial.println("Alert Sending...");
     Blynk.notify("MailBot Alert!");
-    timer.setInterval(1000, goToSleep); //3 seconds
+    timer.setInterval(1000, goToSleep); //1 second
 }
 
 void loop(){
